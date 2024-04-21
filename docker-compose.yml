@@ -1,0 +1,106 @@
+x-application:
+  &application
+  build:
+    context: .
+  restart: always
+  volumes:
+    - app-static:/opt/app/static
+    - app-media:/opt/app/media
+  env_file:
+    - .env
+  depends_on:
+    - database
+    - cache
+
+services:
+  database:
+    image: postgres:${DATABASE_VERSION}
+    restart: always
+    profiles:
+      - ''
+      - 'prod'
+    expose:
+      - ${DATABASE_PORT}
+    volumes:
+      - data-postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME} -p ${DATABASE_PORT}']
+      interval: 5s
+      timeout: 60s
+      retries: 10
+  cache:
+    image: redis:${CACHE_VERSION}
+    restart: always
+    profiles:
+      - ''
+      - 'prod'
+    expose:
+      - ${CACHE_PORT}
+    volumes:
+      - data-redis:/data
+  celery:
+    <<: *application
+    profiles:
+      - ''
+      - 'prod'
+    environment:
+      - SERVICE_TYPE=CELERY
+      - DEBUG=0
+    depends_on:
+      - cache
+  wsgi:
+    <<: *application
+    profiles:
+      - 'prod'
+    expose:
+      - ${APP_WSGI_PORT}
+    environment:
+      - SERVICE_TYPE=WSGI
+      - DEBUG=0
+  asgi:
+    <<: *application
+    profiles:
+      - 'prod'
+    expose:
+      - ${APP_ASGI_PORT}
+    environment:
+      - SERVICE_TYPE=ASGI
+      - DEBUG=0
+  asgi-dev:
+    <<: *application
+    profiles:
+      - ''
+    ports:
+      - '80:${APP_ASGI_DEV_PORT}'
+    volumes:
+      - ./project:/opt/app/
+    environment:
+      - SERVICE_TYPE=ASGI
+      - DEBUG=1
+  nginx:
+    image: nginx:1.25.5
+    restart: always
+    profiles:
+      - 'prod'
+    ports:
+      - '80:80'
+    volumes:
+      - ./config/nginx:/etc/nginx/templates
+      - app-static:/opt/app/static
+      - app-media:/opt/app/media
+    environment:
+      - WSGI_PORT=${APP_WSGI_PORT}
+      - ASGI_PORT=${APP_ASGI_PORT}
+    depends_on:
+      - wsgi
+      - asgi
+
+volumes:
+  data-postgres:
+  data-redis:
+  app-static:
+  app-media:
