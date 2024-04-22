@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from django.urls import reverse_lazy
 
 
 # Get non-empty variables
@@ -34,6 +35,7 @@ DEBUG = int(get_env_variable('DEBUG', 0))
 ALLOWED_HOSTS = get_env_variable('APP_ALLOWED_HOSTS', '127.0.0.1 localhost').split(' ')
 
 INSTALLED_APPS = [
+    'accounts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # custom
     'config',
+    'home',
 ]
 
 if SERVICE_TYPE == _SERVICE_TYPE_ASGI:
@@ -70,6 +73,7 @@ TEMPLATES = [{
             'django.template.context_processors.request',
             'django.contrib.auth.context_processors.auth',
             'django.contrib.messages.context_processors.messages',
+            'home.context_processors.get_project_info',
         ],
     },
 }]
@@ -171,3 +175,7 @@ if DEBUG:
     DEBUG_TOOLBAR_CONFIG = {
         'SHOW_TOOLBAR_CALLBACK': show_toolbar,
     }
+
+LOGIN_URL = reverse_lazy('login')
+LOGIN_REDIRECT_URL = reverse_lazy('home')
+LOGOUT_REDIRECT_URL = LOGIN_URL

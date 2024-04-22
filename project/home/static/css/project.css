@@ -1,0 +1,11 @@
+#main {
+    padding: 2rem !important;
+}
+
+.header-top {
+    border-radius: 0.7rem;
+}
+
+#auth #auth-right {
+    background: linear-gradient(90deg, #2d499d, #3f5491) !important;
+}
